@@ -33,7 +33,7 @@ BOT_TOKEN=your_telegram_bot_token
 SUPERADMIN_ID=your_tg_id("@getmyid_bot")
 ```
 
-🤖 How to use
+##  🤖 How to use
 In Telegram:
 
 ```
@@ -44,7 +44,7 @@ The bot will say “searching...”, spin up some threads, and send you a .json 
 
 Use solana address or solana airdrop to flex that fresh wallet.
 
-📦 Requirements
+## 📦 Requirements
 Python 3.11+
 
 solana-keygen
@@ -53,13 +53,19 @@ aiogram v3
 
 Docker (optional, but makes life easier)
 
-🧠 Notes
+## 🧠 Notes
 Temporary key files are stored in /tmp and cleaned up.
 
 Bot logs all grind requests (for science).
 
 If it crashes — CTRL+C like a true hacker.
 
-👨‍💻 Author
+## ⚠️ Security Warning: Never store real funds in vanity wallets unless you're 100% sure you know what you're doing. This bot is for fun and experimentation — not cold storage.
+
+## 👨‍💻 Author
 Built at 3AM with zero sleep and maximum love:
 @pap0nt
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
