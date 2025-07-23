@@ -5,11 +5,11 @@ build:
 	docker build -t $(APP_NAME) .
 
 run:
-	docker run --rm -it --env-file $(ENV_FILE) --name $(APP_NAME) $(APP_NAME)
+	docker run --cpus=1.0 --rm -it --env-file $(ENV_FILE) --name $(APP_NAME) $(APP_NAME)
 
 start:
 	docker build -t $(APP_NAME) .
-	docker run -d --env-file $(ENV_FILE) --name $(APP_NAME) $(APP_NAME)
+	docker run --cpus=1.0 -d --env-file $(ENV_FILE) --name $(APP_NAME) $(APP_NAME)
 
 stop:
 	docker stop $(APP_NAME) || true
