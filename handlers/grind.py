@@ -89,7 +89,7 @@ def register_grind_handlers(dp: Dispatcher, bot: Bot):
             logger.debug(f"stdout:\n{stdout_text}")
             return await message.reply("❌ Не удалось найти файл с ключом.")
 
-        real_keyfile_path = Path(match.group(1)).resolve()
+        real_keyfile_path = Path("/tmp")/Path(match.group(1)).resolve()
 
         # 📦 Отправляем файл
         try:
