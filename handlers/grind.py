@@ -31,8 +31,7 @@ def register_grind_handlers(dp: Dispatcher, bot: Bot):
             "solana-keygen", "grind",
             "--starts-with", f"{prefix}:1",
             "--num-threads", "5",
-            "--ignore-case",
-            "--outfile", str(keyfile)
+            "--ignore-case", str(keyfile)
         ]
 
         start_time = time.time()
