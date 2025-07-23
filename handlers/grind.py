@@ -5,6 +5,7 @@ from pathlib import Path
 from utils.process_manager import ProcessManager
 from core.logger import logger
 from core.config import SUPERADMIN_ID
+import re
 
 process_manager = ProcessManager()
 
@@ -24,7 +25,6 @@ def register_grind_handlers(dp: Dispatcher, bot: Bot):
             return await message.reply("⚠️ Укажи префикс: /grind serg", parse_mode="HTML")
 
         prefix = args.strip()
-        keyfile = Path("/tmp") / f"keypair-{prefix}.json"
 
         cmd = [
             "solana-keygen", "grind",
@@ -57,7 +57,8 @@ def register_grind_handlers(dp: Dispatcher, bot: Bot):
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
+            cwd="/tmp"
         )
         process_manager.add(message.from_user.id, proc)
 
@@ -71,42 +72,49 @@ def register_grind_handlers(dp: Dispatcher, bot: Bot):
             logger.info(f"❌ Процесс отменён пользователем {message.from_user.id}")
             return await message.reply("❌ Поиск отменён.")
 
+        stdout_text = stdout.decode()
+        stderr_text = stderr.decode()
+
         process_manager.remove(message.from_user.id)
         updater_task.cancel()
 
         if proc.returncode != 0:
-            logger.error(f"❌ Ошибка процесса для '{prefix}': {stderr.decode()}")
-            return await message.reply(f"❌ Ошибка:\n<pre>{stderr.decode()}</pre>", parse_mode="HTML")
+            logger.error(f"❌ Ошибка процесса для '{prefix}': {stderr_text}")
+            return await message.reply(f"❌ Ошибка:\n<pre>{stderr_text}</pre>", parse_mode="HTML")
 
-        # 💾 Сохраняем stdout в файл
+        # 🕵️ Найдём путь к созданному ключу
+        match = re.search(r'Wrote keypair to (.+\.json)', stdout_text)
+        if not match:
+            logger.error("❌ Не удалось найти путь к сгенерированному ключу в stdout")
+            logger.debug(f"stdout:\n{stdout_text}")
+            return await message.reply("❌ Не удалось найти файл с ключом.")
+
+        real_keyfile_path = Path(match.group(1)).resolve()
+
+        # 📦 Отправляем файл
         try:
-            with open(keyfile, "wb") as f:
-                f.write(stdout)
-            logger.info(f"💾 Ключи сохранены в файл {keyfile}")
+            await message.reply_document(real_keyfile_path.open("rb"), caption=f"📦 Готово! Адрес с '{prefix}'")
+            logger.info(f"✅ Ключ отправлен пользователю {message.from_user.id}: {real_keyfile_path.name}")
         except Exception as e:
-            logger.error(f"❌ Не удалось сохранить ключи: {e}")
-            return await message.reply("❌ Не удалось сохранить ключи.")
+            logger.error(f"❌ Ошибка при отправке ключа: {e}")
+            return await message.reply("❌ Не удалось отправить файл.")
 
-        await message.reply_document(keyfile.open("rb"), caption=f"📦 Готово! Адрес с '{prefix}'")
-        logger.info(f"✅ Успешно найден адрес для '{prefix}' пользователем {message.from_user.id}")
-
+        # 🧹 Удаляем файл
         try:
-            keyfile.unlink()
-            logger.info(f"🧹 Файл {keyfile} удалён после отправки")
+            real_keyfile_path.unlink()
+            logger.info(f"🧹 Удалён временный файл {real_keyfile_path}")
         except Exception as e:
-            logger.warning(f"⚠️ Не удалось удалить временный файл {keyfile}: {e}")
-
+            logger.warning(f"⚠️ Не удалось удалить временный файл: {e}")
 
     @dp.message_handler(commands=["cancel"])
     async def cancel_command(message: types.Message):
-        from config import SUPERADMIN_ID
         if message.from_user.id not in SUPERADMIN_ID:
             logger.warning(f"⛔ Пользователь {message.from_user.id} попытался использовать /cancel без прав")
-            return await message.reply("\u26d4\ufe0f Доступ запрещён")
+            return await message.reply("⛔ Доступ запрещён")
 
         result = await process_manager.cancel(message.from_user.id)
         if result:
             logger.info(f"❌ Поиск остановлен пользователем {message.from_user.id}")
-            await message.reply("\u274c Поиск остановлен.")
+            await message.reply("❌ Поиск остановлен.")
         else:
-            await message.reply("\u2139\ufe0f Нет активного поиска.")
+            await message.reply("ℹ️ Нет активного поиска.")
